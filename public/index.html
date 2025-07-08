@@ -37,8 +37,14 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.3); padding: 30px;
     }
     header h1 { text-align: center; margin-bottom: 25px; color: #fff; font-weight: 700 }
-    .task-form { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap }
-    .form-group { flex: 1 }
+    
+    .task-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .form-group { width: 100% }
     input[type="text"], input[type="datetime-local"] {
       width: 100%; padding: 12px 15px;
       background-color: var(--bg-color); border: 1px solid var(--border-color);
