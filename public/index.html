@@ -37,22 +37,41 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.3); padding: 30px;
     }
     header h1 { text-align: center; margin-bottom: 25px; color: #fff; font-weight: 700 }
-    
     .task-form {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+      display: flex; flex-direction: column; gap: 15px;
       margin-bottom: 30px;
     }
-    .form-group { width: 100% }
+    .form-group {
+      width: 100%; position: relative;
+    }
     input[type="text"], input[type="datetime-local"] {
       width: 100%; padding: 12px 15px;
-      background-color: var(--bg-color); border: 1px solid var(--border-color);
-      border-radius: 8px; color: var(--text-primary); font-size: 16px;
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 16px;
+      transition: border 0.3s, box-shadow 0.3s;
+    }
+    input[type="datetime-local"] {
+      padding-left: 40px;
+      background-image: url('data:image/svg+xml;utf8,<svg fill="%23a9b1d6" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM7 12h5v5H7z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: 12px center;
+      background-size: 20px 20px;
+    }
+    input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.3);
+      outline: none;
     }
     .task-form button {
-      padding: 12px 20px; background-color: var(--accent-color);
-      color: #1a1b26; font-weight: 700; border: none; border-radius: 8px;
+      padding: 12px 20px;
+      background-color: var(--accent-color);
+      color: #1a1b26;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
       cursor: pointer;
     }
     .task-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 15px }
@@ -145,24 +164,9 @@ document.addEventListener('DOMContentLoaded', () => {
     copyBtn.className = 'action-btn copy-btn';
     copyBtn.textContent = 'Copy';
     copyBtn.onclick = () => {
-      const tempInput = document.createElement('textarea');
-      tempInput.value = task.task_description;
-      tempInput.style.position = 'fixed';
-      tempInput.style.opacity = '0';
-      document.body.appendChild(tempInput);
-      tempInput.focus();
-      tempInput.select();
-      try {
-        const success = document.execCommand('copy');
-        if (success) {
-          Swal.fire({ icon: 'success', toast: true, title: 'Disalin!', timer: 2000, position: 'top-end', showConfirmButton: false });
-        } else {
-          throw new Error("Copy gagal");
-        }
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'Gagal salin', text: err.message });
-      }
-      document.body.removeChild(tempInput);
+      navigator.clipboard.writeText(task.task_description)
+        .then(() => Swal.fire({ icon: 'success', toast: true, title: 'Disalin!', timer: 2000, position: 'top-end', showConfirmButton: false }))
+        .catch(() => Swal.fire({ icon: 'error', title: 'Gagal salin' }));
     };
 
     const deleteBtn = document.createElement('button');
