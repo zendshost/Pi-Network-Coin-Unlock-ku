@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pi Network</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+    :root {
+      --bg-color: #1a1b26;
+      --surface-color: #24283b;
+      --border-color: #414868;
+      --text-primary: #c0caf5;
+      --text-secondary: #a9b1d6;
+      --accent-color: #7aa2f7;
+      --accent-hover: #9eceff;
+      --success-bg: rgba(75, 172, 119, .15);
+      --success-text: #4bca77;
+      --danger-color: #f7768e;
+    }
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+    html { color-scheme: dark }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    main { display: flex; justify-content: center; padding: 50px 20px }
+    .container {
+      width: 100%; max-width: 700px;
+      background-color: var(--surface-color);
+      border-radius: 12px; border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,.3); padding: 30px;
+    }
+    header h1 { text-align: center; margin-bottom: 25px; color: #fff; font-weight: 700 }
+    .task-form { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap }
+    .form-group { flex: 1 }
+    input[type="text"], input[type="datetime-local"] {
+      width: 100%; padding: 12px 15px;
+      background-color: var(--bg-color); border: 1px solid var(--border-color);
+      border-radius: 8px; color: var(--text-primary); font-size: 16px;
+    }
+    .task-form button {
+      padding: 12px 20px; background-color: var(--accent-color);
+      color: #1a1b26; font-weight: 700; border: none; border-radius: 8px;
+      cursor: pointer;
+    }
+    .task-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 15px }
+    .task-item {
+      padding: 20px; border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background-color: transparent;
+    }
+    .task-description { font-size: 1.1em; color: #fff; word-break: break-word }
+    .schedule-info {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 10px 15px; margin-top: 10px;
+    }
+    .scheduled-time, .countdown {
+      font-family: monospace; font-size: .9em;
+      background-color: rgba(122,162,247,.1); padding: 4px 8px;
+      border-radius: 5px; color: var(--text-secondary);
+    }
+    .task-actions { display: flex; gap: 10px; margin-top: 10px }
+    .action-btn {
+      background: none; border: 1px solid var(--border-color);
+      color: var(--text-secondary); padding: 5px 10px;
+      border-radius: 5px; cursor: pointer; font-size: .8em; font-weight: 500;
+    }
+    .copy-btn:hover { color: var(--accent-color); border-color: var(--accent-color) }
+    .delete-btn:hover { color: var(--danger-color); border-color: var(--danger-color) }
+    .task-item.completed {
+      background-color: var(--success-bg); border-color: var(--success-text);
+    }
+    .task-item.completed .task-description {
+      text-decoration: line-through; color: var(--success-text); opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <div class="container">
+    <header><h1>Pi Network Coin Unlock</h1></header>
+    <form id="taskForm" class="task-form">
+      <div class="form-group">
+        <input type="text" id="taskInput" placeholder="Masukkan Pharsa 24 Kata" required>
+      </div>
+      <div class="form-group">
+        <input type="datetime-local" id="timeInput" required>
+      </div>
+      <button type="submit">Simpan</button>
+    </form>
+    <ul id="taskList" class="task-list"></ul>
+  </div>
+</main>
+
+<audio id="notifySound" src="/unlock.wav" preload="auto"></audio>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const taskForm = document.getElementById('taskForm');
+  const taskInput = document.getElementById('taskInput');
+  const timeInput = document.getElementById('timeInput');
+  const taskList = document.getElementById('taskList');
+  const notifySound = document.getElementById('notifySound');
+
+  function formatDateTime(isoString) {
+    const date = new Date(isoString);
+    const pad = num => num.toString().padStart(2, '0');
+    return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  async function fetchAndRenderTasks() {
+    try {
+      const response = await fetch('/api/tasks');
+      const tasks = await response.json();
+      taskList.innerHTML = '';
+      tasks.forEach(renderTask);
+    } catch {
+      taskList.innerHTML = '<li>Gagal memuat tugas.</li>';
+    }
+  }
+
+  function renderTask(task) {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    const desc = document.createElement('p');
+    desc.className = 'task-description';
+    desc.textContent = task.task_description;
+
+    const actions = document.createElement('div');
+    actions.className = 'task-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'action-btn copy-btn';
+    copyBtn.textContent = 'Copy';
+    copyBtn.onclick = () => {
+      const tempInput = document.createElement('textarea');
+      tempInput.value = task.task_description;
+      tempInput.style.position = 'fixed';
+      tempInput.style.opacity = '0';
+      document.body.appendChild(tempInput);
+      tempInput.focus();
+      tempInput.select();
+      try {
+        const success = document.execCommand('copy');
+        if (success) {
+          Swal.fire({ icon: 'success', toast: true, title: 'Disalin!', timer: 2000, position: 'top-end', showConfirmButton: false });
+        } else {
+          throw new Error("Copy gagal");
+        }
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Gagal salin', text: err.message });
+      }
+      document.body.removeChild(tempInput);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'action-btn delete-btn';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.onclick = async () => {
+      const confirm = await Swal.fire({ icon: 'warning', title: 'Hapus?', showCancelButton: true });
+      if (confirm.isConfirmed) {
+        await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
+        li.remove();
+      }
+    };
+
+    actions.append(copyBtn, deleteBtn);
+
+    const info = document.createElement('div');
+    info.className = 'schedule-info';
+    const time = document.createElement('span');
+    time.className = 'scheduled-time';
+    time.textContent = 'Jadwal: ' + formatDateTime(task.schedule_time);
+
+    const countdown = document.createElement('span');
+    countdown.className = 'countdown';
+
+    info.append(time, countdown);
+
+    li.append(desc, actions, info);
+    taskList.appendChild(li);
+
+    if (task.is_completed) {
+      li.classList.add('completed');
+      countdown.textContent = '✅ Unlock';
+    } else {
+      startCountdown(task, li, countdown);
+    }
+  }
+
+  function startCountdown(task, taskElement, countdownElement) {
+    const scheduleTime = new Date(task.schedule_time).getTime();
+    const intervalId = setInterval(async () => {
+      const now = Date.now();
+      const distance = scheduleTime - now;
+
+      if (distance <= 0) {
+        clearInterval(intervalId);
+        taskElement.classList.add('completed');
+        countdownElement.textContent = '✅ Unlock';
+        notifySound.play();
+        await fetch(`/api/tasks/${task.id}`, { method: 'PUT' });
+        await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `✅ Mnemonic Unlocked:\n${task.task_description}` })
+        });
+        return;
+      }
+
+      const minutes = Math.floor(distance / 60000);
+      const seconds = Math.floor((distance % 60000) / 1000);
+
+      if (distance <= 5 * 60000) {
+        countdownElement.textContent = `⚠️ ${minutes} menit ${seconds} detik lagi akan unlock`;
+      } else {
+        countdownElement.textContent = `Sisa: ${minutes}m ${seconds}s`;
+      }
+    }, 1000);
+  }
+
+  taskForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const description = taskInput.value.trim();
+    const time = timeInput.value;
+    const wordCount = description.split(/\s+/).filter(Boolean).length;
+
+    if (wordCount !== 24) {
+      Swal.fire({ icon: 'error', title: 'Harus 24 kata!', text: 'Pharsa harus terdiri dari tepat 24 kata.' });
+      return;
+    }
+
+    await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_description: description, schedule_time: time })
+    });
+
+    taskForm.reset();
+    fetchAndRenderTasks();
+  });
+
+  fetchAndRenderTasks();
+});
+</script>
+</body>
+</html>
